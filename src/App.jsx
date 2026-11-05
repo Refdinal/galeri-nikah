@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Camera, ChevronDown, Heart, Images, Menu, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Camera, ChevronDown, ChevronRight, Heart, Images, Menu, X } from 'lucide-react'
 import { albums, cloudinaryReady, getAlbumPhotos, getAlbumPreviewPhotos, getFeaturedPhotos } from './cloudinary.js'
 
 const PHOTO_BATCH_SIZE = 20
@@ -162,7 +162,7 @@ function App() {
           </div>
           {loading && <div className="status-message"><span className="spinner" /> Memuat foto-foto kenangan…</div>}
           {!loading && error && <div className="empty-state"><Camera size={25} /><h2>{ready ? 'Album belum berisi foto' : 'Galeri sedang disiapkan'}</h2><p>{error}</p></div>}
-          {!loading && photos.length > 0 && <><div className="photo-grid">{visiblePhotos.map((photo, index) => <button className="photo-tile" key={photo.id} onClick={() => setSelectedPhoto(photo)} aria-label={`Lihat foto ${index + 1}: ${photo.alt}`}><Photo src={photo.thumb} alt={photo.alt} /><span className="photo-number">{String(index + 1).padStart(2, '0')}</span></button>)}</div>{nextCursor && <div className="load-more-sentinel" aria-live="polite"><button className="load-more-button" type="button" onClick={loadMorePhotos} disabled={loadingMore}>{loadingMore && <span className="spinner" />}{loadingMore ? 'Memuat foto berikutnya…' : 'Muat foto lainnya'}</button></div>}</>}
+          {!loading && photos.length > 0 && <><div className="photo-grid">{visiblePhotos.map((photo, index) => <button className="photo-tile" key={photo.id} onClick={() => setSelectedPhoto(photo)} aria-label={`Lihat foto ${index + 1}: ${photo.alt}`}><Photo src={photo.thumb} alt={photo.alt} /><span className="photo-number">{String(index + 1).padStart(2, '0')}</span></button>)}</div>{nextCursor && <div className="load-more-sentinel" aria-live="polite"><button className="load-more-button" type="button" onClick={loadMorePhotos} disabled={loadingMore}>{loadingMore ? <><span className="spinner" /> Memuat foto berikutnya…</> : <>Muat foto lainnya <ChevronRight size={17} /></>}</button></div>}</>}
         </section>
       ) : (
         <>
