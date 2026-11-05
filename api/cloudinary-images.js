@@ -34,6 +34,7 @@ export default async function handler(req, res) {
   const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
   const searchParams = {
     expression: `folder="${album.folder}" AND resource_type:image`,
+    sort_by: JSON.stringify([{ public_id: 'asc' }]),
     max_results: String(maxResults),
   }
   if (nextCursor) searchParams.next_cursor = nextCursor
@@ -54,14 +55,12 @@ export default async function handler(req, res) {
       return json(res, response.status, { error: result.error?.message || 'Cloudinary gagal mengambil daftar foto.' })
     }
 
-  const photos = (result.resources || []).map((resource) => ({
+    const photos = (result.resources || []).map((resource) => ({
       id: resource.public_id,
       src: resource.secure_url,
       thumb: resource.secure_url.replace('/upload/', '/upload/f_auto,q_auto,w_640,c_limit/'),
       alt: resource.context?.custom?.alt || resource.public_id.split('/').at(-1).replace(/[-_]/g, ' '),
     }))
-
-    photos.sort((a, b) => a.id.localeCompare(b.id, undefined, { sensitivity: 'base', numeric: true }))
 
     return json(res, 200, { photos, nextCursor: result.next_cursor || null })
   } catch {

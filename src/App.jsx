@@ -20,6 +20,8 @@ function App() {
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const loadMoreRef = useRef(null)
+  const albumRequestRef = useRef(0)
+  const loadingMoreRef = useRef(false)
 
   const ready = cloudinaryReady()
 
@@ -31,6 +33,7 @@ function App() {
   }, [])
 
   const openAlbum = useCallback(async (album, pushHistory = true) => {
+    const requestId = ++albumRequestRef.current
     if (pushHistory && window.location.pathname !== album.path) window.history.pushState({}, '', album.path)
     setActiveAlbum(album)
     setPhotos([])
@@ -40,15 +43,16 @@ function App() {
     setLoading(true)
     try {
       const result = await getAlbumPhotos(album.id, { limit: PHOTO_BATCH_SIZE })
-      const sortedPhotos = [...(result.photos || [])].sort((a, b) => a.id.localeCompare(b.id, undefined, { sensitivity: 'base', numeric: true }))
-      setPhotos(sortedPhotos)
+      if (requestId !== albumRequestRef.current) return
+      setPhotos(result.photos || [])
       setNextCursor(result.nextCursor || null)
       if (!ready) setError('Tambahkan cloud name Cloudinary untuk menampilkan foto dari album ini.')
       else if (!result.photos?.length) setError('Belum ada foto di album ini. Unggah foto ke folder Cloudinary yang sesuai.')
     } catch (cause) {
+      if (requestId !== albumRequestRef.current) return
       setError(cause.message || 'Foto belum dapat dimuat. Periksa folder Cloudinary dan pengaturan akses daftar gambar.')
     } finally {
-      setLoading(false)
+      if (requestId === albumRequestRef.current) setLoading(false)
     }
   }, [ready])
 
@@ -58,6 +62,7 @@ function App() {
       setSelectedPhoto(null)
       if (album) openAlbum(album, false)
       else {
+        albumRequestRef.current += 1
         setActiveAlbum(null)
         setPhotos([])
         setNextCursor(null)
@@ -71,6 +76,7 @@ function App() {
   }, [openAlbum])
 
   const closeAlbum = () => {
+    albumRequestRef.current += 1
     if (window.location.pathname !== '/') window.history.pushState({}, '', '/')
     setActiveAlbum(null)
     setPhotos([])
@@ -106,16 +112,25 @@ function App() {
     if (!activeAlbum || loading || loadingMore || !nextCursor) return undefined
     const target = loadMoreRef.current
     if (!target) return undefined
+    const albumId = activeAlbum.id
+    const requestId = albumRequestRef.current
     const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
+      if (entries.some((entry) => entry.isIntersecting) && !loadingMoreRef.current) {
+        loadingMoreRef.current = true
         setLoadingMore(true)
-        getAlbumPhotos(activeAlbum.id, { limit: PHOTO_BATCH_SIZE, cursor: nextCursor })
+        getAlbumPhotos(albumId, { limit: PHOTO_BATCH_SIZE, cursor: nextCursor })
           .then((result) => {
-            setPhotos((current) => [...current, ...(result.photos || [])].sort((a, b) => a.id.localeCompare(b.id, undefined, { sensitivity: 'base', numeric: true })))
+            if (requestId !== albumRequestRef.current) return
+            setPhotos((current) => [...current, ...(result.photos || [])])
             setNextCursor(result.nextCursor || null)
           })
-          .catch((cause) => setError(cause.message || 'Foto berikutnya gagal dimuat.'))
-          .finally(() => setLoadingMore(false))
+          .catch((cause) => {
+            if (requestId === albumRequestRef.current) setError(cause.message || 'Foto berikutnya gagal dimuat.')
+          })
+          .finally(() => {
+            loadingMoreRef.current = false
+            if (requestId === albumRequestRef.current) setLoadingMore(false)
+          })
       }
     }, { rootMargin: '700px 0px' })
     observer.observe(target)

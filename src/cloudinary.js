@@ -84,9 +84,7 @@ export async function getAlbumPhotos(albumId, { limit, cursor } = {}) {
     throw new Error(detail || (response.status === 404 ? 'Album belum memiliki foto atau folder belum tersedia.' : 'Foto album belum dapat dimuat.'))
   }
 
-  const data = await response.json()
-  if (!cursor) data.photos = [...(data.photos || [])].sort((a, b) => a.id.localeCompare(b.id, undefined, { sensitivity: 'base', numeric: true }))
-  return data
+  return response.json()
 }
 
 export async function getAlbumPreviewPhotos() {
