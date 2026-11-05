@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
   const photos = (result.resources || []).map((resource) => ({
       id: resource.public_id,
-      src: resource.secure_url.replace('/upload/', '/upload/f_auto,q_auto,w_2000/'),
+      src: resource.secure_url,
       thumb: resource.secure_url.replace('/upload/', '/upload/f_auto,q_auto,w_640,c_limit/'),
       alt: resource.context?.custom?.alt || resource.public_id.split('/').at(-1).replace(/[-_]/g, ' '),
     }))
