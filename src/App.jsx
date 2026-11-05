@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Camera, ChevronDown, Heart, Images, Menu, X } from 'lucide-react'
 import { albums, cloudinaryReady, getAlbumPhotos, getAlbumPreviewPhotos, getFeaturedPhotos } from './cloudinary.js'
 
-const PHOTO_BATCH_SIZE = 36
+const PHOTO_BATCH_SIZE = 24
 
 function Photo({ src, alt, className = '', loading = 'lazy' }) {
   return <img className={className} src={src} alt={alt} loading={loading} />
@@ -40,7 +40,8 @@ function App() {
     setLoading(true)
     try {
       const result = await getAlbumPhotos(album.id, { limit: PHOTO_BATCH_SIZE })
-      setPhotos(result.photos || [])
+      const sortedPhotos = [...(result.photos || [])].sort((a, b) => a.id.localeCompare(b.id, undefined, { sensitivity: 'base', numeric: true }))
+      setPhotos(sortedPhotos)
       setNextCursor(result.nextCursor || null)
       if (!ready) setError('Tambahkan cloud name Cloudinary untuk menampilkan foto dari album ini.')
       else if (!result.photos?.length) setError('Belum ada foto di album ini. Unggah foto ke folder Cloudinary yang sesuai.')
@@ -109,7 +110,7 @@ function App() {
         setLoadingMore(true)
         getAlbumPhotos(activeAlbum.id, { limit: PHOTO_BATCH_SIZE, cursor: nextCursor })
           .then((result) => {
-            setPhotos((current) => [...current, ...(result.photos || [])])
+            setPhotos((current) => [...current, ...(result.photos || [])].sort((a, b) => a.id.localeCompare(b.id, undefined, { sensitivity: 'base', numeric: true })))
             setNextCursor(result.nextCursor || null)
           })
           .catch((cause) => setError(cause.message || 'Foto berikutnya gagal dimuat.'))

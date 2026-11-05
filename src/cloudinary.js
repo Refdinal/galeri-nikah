@@ -85,6 +85,7 @@ export async function getAlbumPhotos(albumId, { limit, cursor } = {}) {
   }
 
   const data = await response.json()
+  if (!cursor) data.photos = [...(data.photos || [])].sort((a, b) => a.id.localeCompare(b.id, undefined, { sensitivity: 'base', numeric: true }))
   return data
 }
 
@@ -101,6 +102,6 @@ export async function getAlbumPreviewPhotos() {
 }
 
 export async function getFeaturedPhotos() {
-  const previews = await Promise.all(albums.map((album) => getAlbumPhotos(album.id, { limit: 12 }).then((result) => result.photos).catch(() => [])))
+  const previews = await Promise.all(albums.map((album) => getAlbumPhotos(album.id, { limit: 6 }).then((result) => result.photos).catch(() => [])))
   return previews.flat().sort(() => Math.random() - 0.5).slice(0, 6)
 }
