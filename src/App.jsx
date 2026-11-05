@@ -66,6 +66,7 @@ function App() {
       }
     }
     window.addEventListener('popstate', syncRoute)
+    syncRoute()
     return () => window.removeEventListener('popstate', syncRoute)
   }, [openAlbum])
 
