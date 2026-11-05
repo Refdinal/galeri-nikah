@@ -84,7 +84,13 @@ function App() {
   }
 
   const orderedPhotos = useMemo(() => photos, [photos])
-  const visiblePhotos = photos
+  const photoSections = useMemo(() => {
+    const sections = []
+    for (let index = 0; index < photos.length; index += PHOTO_BATCH_SIZE) {
+      sections.push(photos.slice(index, index + PHOTO_BATCH_SIZE))
+    }
+    return sections
+  }, [photos])
   const currentIndex = selectedPhoto ? orderedPhotos.findIndex((photo) => photo.id === selectedPhoto.id) : -1
   const movePhoto = (direction) => {
     if (!orderedPhotos.length || currentIndex < 0) return
@@ -162,7 +168,10 @@ function App() {
           </div>
           {loading && <div className="status-message"><span className="spinner" /> Memuat foto-foto kenangan…</div>}
           {!loading && error && <div className="empty-state"><Camera size={25} /><h2>{ready ? 'Album belum berisi foto' : 'Galeri sedang disiapkan'}</h2><p>{error}</p></div>}
-          {!loading && photos.length > 0 && <><div className="photo-grid">{visiblePhotos.map((photo, index) => <button className="photo-tile" key={photo.id} onClick={() => setSelectedPhoto(photo)} aria-label={`Lihat foto ${index + 1}: ${photo.alt}`}><Photo src={photo.thumb} alt={photo.alt} /><span className="photo-number">{String(index + 1).padStart(2, '0')}</span></button>)}</div>{nextCursor && <div className="load-more-sentinel" aria-live="polite"><button className="load-more-button" type="button" onClick={loadMorePhotos} disabled={loadingMore}>{loadingMore ? <><span className="spinner" /> Memuat foto berikutnya…</> : <>Muat foto lainnya <ChevronRight size={17} /></>}</button></div>}</>}
+          {!loading && photos.length > 0 && <>{photoSections.map((section, sectionIndex) => <div className="photo-section" key={`photo-section-${sectionIndex}`}><div className="photo-grid">{section.map((photo, photoIndex) => {
+            const index = sectionIndex * PHOTO_BATCH_SIZE + photoIndex
+            return <button className="photo-tile" key={photo.id} onClick={() => setSelectedPhoto(photo)} aria-label={`Lihat foto ${index + 1}: ${photo.alt}`}><Photo src={photo.thumb} alt={photo.alt} /><span className="photo-number">{String(index + 1).padStart(2, '0')}</span></button>
+          })}</div></div>)}{nextCursor && <div className="load-more-sentinel" aria-live="polite"><button className="load-more-button" type="button" onClick={loadMorePhotos} disabled={loadingMore}>{loadingMore ? <><span className="spinner" /> Memuat foto berikutnya…</> : <>Muat foto lainnya <ChevronRight size={17} /></>}</button></div>}</>}
         </section>
       ) : (
         <>
