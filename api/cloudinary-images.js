@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
   const searchParams = {
     expression: `folder="${album.folder}" AND resource_type:image`,
-    sort_by: JSON.stringify([{ public_id: 'asc' }]),
+    sort_by: JSON.stringify([{ created: 'asc' }]),
     max_results: String(maxResults),
   }
   if (nextCursor) searchParams.next_cursor = nextCursor
