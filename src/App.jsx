@@ -9,7 +9,7 @@ function Photo({ src, alt, className = '', loading = 'lazy' }) {
 }
 
 function App() {
-  const [activeAlbum, setActiveAlbum] = useState(null)
+  const [activeAlbum, setActiveAlbum] = useState(() => albums.find((album) => album.path === window.location.pathname) || null)
   const [photos, setPhotos] = useState([])
   const [nextCursor, setNextCursor] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -20,6 +20,7 @@ function App() {
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const loadMoreRef = useRef(null)
+
   const ready = cloudinaryReady()
 
   useEffect(() => {
@@ -29,7 +30,8 @@ function App() {
     return () => { mounted = false }
   }, [])
 
-  const openAlbum = useCallback(async (album) => {
+  const openAlbum = useCallback(async (album, pushHistory = true) => {
+    if (pushHistory && window.location.pathname !== album.path) window.history.pushState({}, '', album.path)
     setActiveAlbum(album)
     setPhotos([])
     setNextCursor(null)
@@ -49,9 +51,28 @@ function App() {
     }
   }, [ready])
 
+  useEffect(() => {
+    const syncRoute = () => {
+      const album = albums.find((item) => item.path === window.location.pathname) || null
+      setSelectedPhoto(null)
+      if (album) openAlbum(album, false)
+      else {
+        setActiveAlbum(null)
+        setPhotos([])
+        setNextCursor(null)
+        setError('')
+        setLoading(false)
+      }
+    }
+    window.addEventListener('popstate', syncRoute)
+    return () => window.removeEventListener('popstate', syncRoute)
+  }, [openAlbum])
+
   const closeAlbum = () => {
+    if (window.location.pathname !== '/') window.history.pushState({}, '', '/')
     setActiveAlbum(null)
     setPhotos([])
+    setNextCursor(null)
     setError('')
   }
 
@@ -107,12 +128,12 @@ function App() {
   return (
     <main>
       <header className="topbar">
-        <a className="brand" href="#home" onClick={() => { closeAlbum(); setMenuOpen(false) }} aria-label="Kembali ke beranda">
+        <a className="brand" href="/" onClick={(event) => { event.preventDefault(); closeAlbum(); setMenuOpen(false) }} aria-label="Kembali ke beranda">
           <span className="brand-mark">R<span>&</span>H</span>
           <span className="brand-label">THE WEDDING<br />GALLERY</span>
         </a>
         <nav className={menuOpen ? 'nav-links nav-open' : 'nav-links'} aria-label="Navigasi utama">
-          <a href="#home" onClick={() => { closeAlbum(); setMenuOpen(false) }}>Beranda</a>
+          <a href="/" onClick={(event) => { event.preventDefault(); closeAlbum(); setMenuOpen(false) }}>Beranda</a>
           <a href="#story" onClick={() => setMenuOpen(false)}>Cerita kami</a>
           <button onClick={goToAlbums}>Album foto</button>
         </nav>

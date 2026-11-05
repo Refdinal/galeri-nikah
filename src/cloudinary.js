@@ -1,6 +1,7 @@
 export const albums = [
   {
     id: 'akad',
+    path: '/akad',
     title: 'Akad',
     category: 'Momen sakral',
     description: 'Hari ketika dua doa menjadi satu.',
@@ -9,6 +10,7 @@ export const albums = [
   },
   {
     id: 'wanita-arakan',
+    path: '/wanita-arakan',
     title: 'Wanita — Arakan',
     category: 'Sisi mempelai wanita',
     description: 'Langkah-langkah penuh haru menuju hari bahagia.',
@@ -17,6 +19,7 @@ export const albums = [
   },
   {
     id: 'wanita-couple',
+    path: '/wanita-couple',
     title: 'Wanita — Couple',
     category: 'Sisi mempelai wanita',
     description: 'Potret berdua, dengan cerita yang tak habis dikenang.',
@@ -25,6 +28,7 @@ export const albums = [
   },
   {
     id: 'wanita-keluarga-tamu',
+    path: '/wanita-keluarga-tamu',
     title: 'Wanita — Keluarga & Tamu',
     category: 'Sisi mempelai wanita',
     description: 'Hangatnya keluarga dan sahabat yang hadir.',
@@ -33,6 +37,7 @@ export const albums = [
   },
   {
     id: 'pria-arakan',
+    path: '/pria-arakan',
     title: 'Pria — Arakan',
     category: 'Sisi mempelai pria',
     description: 'Perjalanan menuju sebuah janji seumur hidup.',
@@ -41,6 +46,7 @@ export const albums = [
   },
   {
     id: 'pria-couple',
+    path: '/pria-couple',
     title: 'Pria — Couple',
     category: 'Sisi mempelai pria',
     description: 'Tentang kami, dan semua yang menanti di depan.',
@@ -49,6 +55,7 @@ export const albums = [
   },
   {
     id: 'pria-keluarga-tamu',
+    path: '/pria-keluarga-tamu',
     title: 'Pria — Keluarga & Tamu',
     category: 'Sisi mempelai pria',
     description: 'Momen bersama orang-orang tersayang.',
