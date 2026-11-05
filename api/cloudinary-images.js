@@ -36,7 +36,6 @@ export default async function handler(req, res) {
     expression: `folder="${album.folder}" AND resource_type:image`,
     max_results: String(maxResults),
   }
-  searchParams['sort_by[created]'] = 'asc'
   if (nextCursor) searchParams.next_cursor = nextCursor
   const body = new URLSearchParams(searchParams)
 
