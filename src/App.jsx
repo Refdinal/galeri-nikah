@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Camera, ChevronDown, Heart, Images, Menu, X } from 'lucide-react'
 import { albums, cloudinaryReady, getAlbumPhotos, getAlbumPreviewPhotos, getFeaturedPhotos } from './cloudinary.js'
 
-const PHOTO_BATCH_SIZE = 24
+const PHOTO_BATCH_SIZE = 20
 
 function Photo({ src, alt, className = '', loading = 'lazy' }) {
   return <img className={className} src={src} alt={alt} loading={loading} />
@@ -19,7 +19,6 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
-  const loadMoreRef = useRef(null)
   const albumRequestRef = useRef(0)
   const loadingMoreRef = useRef(false)
 
@@ -108,34 +107,25 @@ function App() {
     }
   })
 
-  useEffect(() => {
-    if (!activeAlbum || loading || loadingMore || !nextCursor) return undefined
-    const target = loadMoreRef.current
-    if (!target) return undefined
+  const loadMorePhotos = async () => {
+    if (!activeAlbum || !nextCursor || loadingMoreRef.current) return
     const albumId = activeAlbum.id
+    const cursor = nextCursor
     const requestId = albumRequestRef.current
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting) && !loadingMoreRef.current) {
-        loadingMoreRef.current = true
-        setLoadingMore(true)
-        getAlbumPhotos(albumId, { limit: PHOTO_BATCH_SIZE, cursor: nextCursor })
-          .then((result) => {
-            if (requestId !== albumRequestRef.current) return
-            setPhotos((current) => [...current, ...(result.photos || [])])
-            setNextCursor(result.nextCursor || null)
-          })
-          .catch((cause) => {
-            if (requestId === albumRequestRef.current) setError(cause.message || 'Foto berikutnya gagal dimuat.')
-          })
-          .finally(() => {
-            loadingMoreRef.current = false
-            if (requestId === albumRequestRef.current) setLoadingMore(false)
-          })
-      }
-    }, { rootMargin: '700px 0px' })
-    observer.observe(target)
-    return () => observer.disconnect()
-  }, [activeAlbum, loading, loadingMore, nextCursor])
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+    try {
+      const result = await getAlbumPhotos(albumId, { limit: PHOTO_BATCH_SIZE, cursor })
+      if (requestId !== albumRequestRef.current) return
+      setPhotos((current) => [...current, ...(result.photos || [])])
+      setNextCursor(result.nextCursor || null)
+    } catch (cause) {
+      if (requestId === albumRequestRef.current) setError(cause.message || 'Foto berikutnya gagal dimuat.')
+    } finally {
+      loadingMoreRef.current = false
+      if (requestId === albumRequestRef.current) setLoadingMore(false)
+    }
+  }
 
   const goToAlbums = () => {
     setMenuOpen(false)
@@ -172,7 +162,7 @@ function App() {
           </div>
           {loading && <div className="status-message"><span className="spinner" /> Memuat foto-foto kenangan…</div>}
           {!loading && error && <div className="empty-state"><Camera size={25} /><h2>{ready ? 'Album belum berisi foto' : 'Galeri sedang disiapkan'}</h2><p>{error}</p></div>}
-          {!loading && photos.length > 0 && <><div className="photo-grid">{visiblePhotos.map((photo, index) => <button className="photo-tile" key={photo.id} onClick={() => setSelectedPhoto(photo)} aria-label={`Lihat foto ${index + 1}: ${photo.alt}`}><Photo src={photo.thumb} alt={photo.alt} /><span className="photo-number">{String(index + 1).padStart(2, '0')}</span></button>)}</div>{nextCursor && <div className="load-more-sentinel" ref={loadMoreRef} aria-live="polite">{loadingMore && <span className="spinner" />}{loadingMore ? 'Memuat foto berikutnya…' : 'Gulir untuk memuat foto berikutnya'}</div>}</>}
+          {!loading && photos.length > 0 && <><div className="photo-grid">{visiblePhotos.map((photo, index) => <button className="photo-tile" key={photo.id} onClick={() => setSelectedPhoto(photo)} aria-label={`Lihat foto ${index + 1}: ${photo.alt}`}><Photo src={photo.thumb} alt={photo.alt} /><span className="photo-number">{String(index + 1).padStart(2, '0')}</span></button>)}</div>{nextCursor && <div className="load-more-sentinel" aria-live="polite"><button className="load-more-button" type="button" onClick={loadMorePhotos} disabled={loadingMore}>{loadingMore && <span className="spinner" />}{loadingMore ? 'Memuat foto berikutnya…' : 'Muat foto lainnya'}</button></div>}</>}
         </section>
       ) : (
         <>
