@@ -45,11 +45,10 @@ function App() {
       if (requestId !== albumRequestRef.current) return
       setPhotos(result.photos || [])
       setNextCursor(result.nextCursor || null)
-      if (!ready) setError('Tambahkan cloud name Cloudinary untuk menampilkan foto dari album ini.')
-      else if (!result.photos?.length) setError('Belum ada foto di album ini. Unggah foto ke folder Cloudinary yang sesuai.')
+      if (!result.photos?.length) setError('Belum ada foto di album ini. Sinkronkan manifest setelah mengunggah foto ke Cloudinary.')
     } catch (cause) {
       if (requestId !== albumRequestRef.current) return
-      setError(cause.message || 'Foto belum dapat dimuat. Periksa folder Cloudinary dan pengaturan akses daftar gambar.')
+      setError(cause.message || 'Foto belum dapat dimuat. Pastikan manifest foto sudah dibuat.')
     } finally {
       if (requestId === albumRequestRef.current) setLoading(false)
     }

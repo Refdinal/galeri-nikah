@@ -1,6 +1,6 @@
 # Menghubungkan galeri dengan Cloudinary
 
-Aplikasi mengambil foto langsung dari folder Media Library Cloudinary. **Tidak perlu mengedit metadata atau menambahkan tag pada foto yang sudah diunggah.** Daftar foto diambil oleh Vercel Function menggunakan Cloudinary Admin API.
+Aplikasi menampilkan foto dari manifest statis yang disimpan di `public/data/gallery-manifest.json`. Pengunjung hanya meminta manifest melalui CDN; daftar foto tidak diambil dari Cloudinary Admin API setiap kali halaman dibuka.
 
 ## Variabel Cloudinary di Vercel
 
@@ -22,7 +22,17 @@ Folder album harus berada di root dan bernama:
 - `Pria - Couple`
 - `Pria - Keluarga x Tamu`
 
-Foto yang sudah ada di dalam masing-masing folder akan ditemukan otomatis.
+Foto yang sudah ada di dalam masing-masing folder akan ditemukan saat menjalankan sinkronisasi.
+
+## Memperbarui daftar foto (manual)
+
+Setiap kali ada foto baru atau perubahan folder di Cloudinary:
+
+1. Pastikan variabel `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, dan `CLOUDINARY_API_SECRET` tersedia di `.env.local` (lihat format di bawah).
+2. Jalankan `npm run sync:cloudinary` dari root proyek. Script mengambil daftar semua foto per album dan memperbarui `public/data/gallery-manifest.json`.
+3. Commit dan deploy manifest yang diperbarui bersama perubahan proyek.
+
+Sinkronisasi membuat satu permintaan Cloudinary Search per halaman hasil tiap album. Untuk album berisi sampai 500 foto, satu sinkronisasi memakai satu permintaan per album. Membuka galeri dan menekan tombol “Muat foto lainnya” tidak menggunakan Admin API.
 
 ## Menjalankan lokal
 
@@ -34,4 +44,4 @@ CLOUDINARY_API_KEY=api_key_dari_dashboard
 CLOUDINARY_API_SECRET=api_secret_dari_dashboard
 ```
 
-Jalankan `npm run preview:local-api`, lalu buka `http://localhost:4173`. Perintah ini membangun frontend dan menjalankan endpoint API lokal, tanpa perlu instal Vercel CLI. Setiap perubahan kode frontend perlu dijalankan ulang dengan perintah tersebut. Jangan pernah membagikan atau melakukan commit terhadap API Secret.
+Jalankan `npm run sync:cloudinary` untuk membuat manifest, lalu `npm run dev` untuk pratinjau lokal. Jangan pernah membagikan atau melakukan commit terhadap API Secret.

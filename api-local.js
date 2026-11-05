@@ -2,7 +2,6 @@ import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import cloudinaryImages from './api/cloudinary-images.js'
 
 const root = fileURLToPath(new URL('.', import.meta.url))
 const mimeTypes = {
@@ -17,33 +16,18 @@ const mimeTypes = {
 const server = createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://localhost')
 
-  if (url.pathname === '/api/cloudinary-images') {
-    const reqAdapter = { query: Object.fromEntries(url.searchParams.entries()) }
-    const resAdapter = {
-      status(code) {
-        res.statusCode = code
-        return this
-      },
-      setHeader(name, value) {
-        res.setHeader(name, value)
-        return this
-      },
-      end(value) {
-        res.end(value)
-        return this
-      },
-    }
-    await cloudinaryImages(reqAdapter, resAdapter)
-    return
-  }
-
   const requestedPath = url.pathname === '/' ? '/index.html' : decodeURIComponent(url.pathname)
   const safePath = normalize(requestedPath).replace(/^([/\\]|\.\.(?:[/\\]|$))+/, '')
   const filePath = join(root, 'dist', safePath)
 
   try {
     const content = await readFile(filePath)
-    res.writeHead(200, { 'Content-Type': mimeTypes[extname(filePath)] || 'application/octet-stream' })
+    const contentType = mimeTypes[extname(filePath)] || 'application/octet-stream'
+    const headers = { 'Content-Type': contentType }
+    if (requestedPath === '/data/gallery-manifest.json') {
+      headers['Cache-Control'] = 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800'
+    }
+    res.writeHead(200, headers)
     res.end(content)
   } catch {
     const html = await readFile(join(root, 'dist', 'index.html'))

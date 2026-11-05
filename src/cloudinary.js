@@ -64,42 +64,54 @@ export const albums = [
   },
 ]
 
+let manifestPromise
+
+async function getManifest() {
+  if (!manifestPromise) {
+    manifestPromise = fetch('/data/gallery-manifest.json')
+      .then((response) => {
+        if (!response.ok) throw new Error('Daftar foto belum tersedia. Jalankan sinkronisasi manifest Cloudinary.')
+        return response.json()
+      })
+      .then((manifest) => {
+        if (!manifest.albums || albums.some((album) => !Array.isArray(manifest.albums[album.id]))) {
+          throw new Error('Manifest foto belum lengkap. Jalankan sinkronisasi manifest Cloudinary.')
+        }
+        return manifest
+      })
+      .catch((error) => {
+        manifestPromise = null
+        throw error
+      })
+  }
+  return manifestPromise
+}
+
 export function cloudinaryReady() {
   return true
 }
 
-export async function getAlbumPhotos(albumId, { limit, cursor } = {}) {
-  const params = new URLSearchParams({ album: albumId })
-  if (limit) params.set('limit', String(limit))
-  if (cursor) params.set('cursor', cursor)
-  const endpoint = `/api/cloudinary-images?${params}`
-  const response = await fetch(endpoint)
-  if (!response.ok) {
-    let detail = ''
-    try {
-      detail = (await response.json()).error || ''
-    } catch {
-      // Fallback for non-JSON responses.
-    }
-    throw new Error(detail || (response.status === 404 ? 'Album belum memiliki foto atau folder belum tersedia.' : 'Foto album belum dapat dimuat.'))
-  }
+export async function getAlbumPhotos(albumId, { limit = 500, cursor = 0 } = {}) {
+  const manifest = await getManifest()
+  const albumPhotos = manifest.albums?.[albumId]
+  if (!albumPhotos) throw new Error(`Daftar foto album "${albumId}" tidak ditemukan di manifest.`)
 
-  return response.json()
+  const start = Number.parseInt(cursor, 10) || 0
+  const photos = albumPhotos.slice(start, start + limit)
+  const nextOffset = start + photos.length
+  return {
+    photos,
+    nextCursor: nextOffset < albumPhotos.length ? String(nextOffset) : null,
+  }
 }
 
 export async function getAlbumPreviewPhotos() {
-  const previews = await Promise.all(albums.map(async (album) => {
-    try {
-      const { photos } = await getAlbumPhotos(album.id, { limit: 1 })
-      return { albumId: album.id, photo: photos[0] || null }
-    } catch {
-      return { albumId: album.id, photo: null }
-    }
-  }))
-  return Object.fromEntries(previews.map(({ albumId, photo }) => [albumId, photo]))
+  const manifest = await getManifest()
+  return Object.fromEntries(albums.map((album) => [album.id, manifest.albums?.[album.id]?.[0] || null]))
 }
 
 export async function getFeaturedPhotos() {
-  const previews = await Promise.all(albums.map((album) => getAlbumPhotos(album.id, { limit: 6 }).then((result) => result.photos).catch(() => [])))
+  const manifest = await getManifest()
+  const previews = albums.map((album) => (manifest.albums?.[album.id] || []).slice(0, 6))
   return previews.flat().sort(() => Math.random() - 0.5).slice(0, 6)
 }
