@@ -9,6 +9,7 @@ const apiKey = process.env.CLOUDINARY_API_KEY
 const apiSecret = process.env.CLOUDINARY_API_SECRET
 
 const albums = [
+  { id: 'prewed', folder: 'PREWED' },
   { id: 'akad', folder: 'AKAD' },
   { id: 'wanita-arakan', folder: 'Wanita - Arakan' },
   { id: 'wanita-couple', folder: 'Wanita - Couple' },

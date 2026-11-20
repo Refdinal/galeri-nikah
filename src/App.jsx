@@ -185,7 +185,7 @@ function App() {
             </div>
             <div className="hero-visual">
               <div className="hero-image-frame"><Photo src="https://res.cloudinary.com/h2116g6d/image/upload/f_auto,q_auto,w_1800/AXL_6647.jpg" alt="AXL_6647 — momen pernikahan Refdinal dan Hanum" loading="eager" /></div>
-              <div className="photo-index"><span>01</span><i /> 07</div>
+              <div className="photo-index"><span>01</span><i /> 08</div>
               <div className="hero-caption"><span>SEBUAH AWAL YANG INDAH</span><Heart size={14} /></div>
               <div className="image-stamp">R <span>&</span> H</div>
             </div>
@@ -207,7 +207,7 @@ function App() {
           </section>
 
           <section className="albums-section" id="albums">
-            <div className="albums-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> DISIMPAN DENGAN PENUH CINTA</p><h2>Setiap momen,<br /><em>punya ceritanya.</em></h2></div><p className="albums-note">Tujuh sudut pandang,<br />satu hari yang tak terlupakan.</p></div>
+            <div className="albums-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> DISIMPAN DENGAN PENUH CINTA</p><h2>Setiap momen,<br /><em>punya ceritanya.</em></h2></div><p className="albums-note">Delapan sudut pandang,<br />satu hari yang tak terlupakan.</p></div>
             <div className="album-list">{albums.map((album, index) => <button className="album-card" key={album.id} onClick={() => openAlbum(album)}><span className="album-card-index">0{index + 1}</span><span className="album-thumb">{albumCovers[album.id] ? <Photo src={albumCovers[album.id].thumb} alt="" /> : <span className="album-thumb-empty"><Images size={17} /></span>}</span><span className="album-card-copy"><span className="album-category">{album.category}</span><span className="album-title">{album.title}</span></span><span className="album-open"><ArrowUpRight size={18} /></span></button>)}</div>
             {!ready && <p className="setup-hint"><Images size={15} /> Foto album akan tampil setelah Cloudinary disambungkan.</p>}
           </section>

@@ -1,5 +1,14 @@
 export const albums = [
   {
+    id: 'prewed',
+    path: '/prewedding',
+    title: 'Prewedding',
+    category: 'Sebelum hari bahagia',
+    description: 'Janji yang mulai tumbuh sebelum akad.',
+    folder: 'PREWED',
+    cover: '',
+  },
+  {
     id: 'akad',
     path: '/akad',
     title: 'Akad',
