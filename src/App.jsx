@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Camera, ChevronDown, ChevronRight, Heart, Images, Menu, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Camera, ChevronDown, ChevronRight, Download, Heart, Images, Menu, X } from 'lucide-react'
 import { albums, cloudinaryReady, getAlbumPhotos, getAlbumPreviewPhotos, getFeaturedPhotos } from './cloudinary.js'
 
 const PHOTO_BATCH_SIZE = 20
@@ -217,7 +217,7 @@ function App() {
         </>
       )}
 
-      {selectedPhoto && <div className="lightbox" role="dialog" aria-modal="true" aria-label="Tampilan foto" onClick={() => setSelectedPhoto(null)}><button className="lightbox-close" onClick={() => setSelectedPhoto(null)} aria-label="Tutup"><X size={23} /></button>{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-prev" onClick={(event) => { event.stopPropagation(); movePhoto(-1) }} aria-label="Foto sebelumnya"><ArrowLeft /></button>}<img src={selectedPhoto.src} alt={selectedPhoto.alt} onClick={(event) => event.stopPropagation()} />{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-next" onClick={(event) => { event.stopPropagation(); movePhoto(1) }} aria-label="Foto berikutnya"><ArrowRight /></button>}<span className="lightbox-caption">{selectedPhoto.alt}</span></div>}
+      {selectedPhoto && <div className="lightbox" role="dialog" aria-modal="true" aria-label="Tampilan foto" onClick={() => setSelectedPhoto(null)}><div className="lightbox-actions"><a className="lightbox-download" href={`${(selectedPhoto.src || selectedPhoto.preview).replace('/upload/', '/upload/fl_attachment/')}`} download onClick={(event) => event.stopPropagation()} aria-label="Unduh foto resolusi asli"><Download size={19} /></a><button className="lightbox-close" onClick={() => setSelectedPhoto(null)} aria-label="Tutup"><X size={23} /></button></div>{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-prev" onClick={(event) => { event.stopPropagation(); movePhoto(-1) }} aria-label="Foto sebelumnya"><ArrowLeft /></button>}<img src={selectedPhoto.preview || selectedPhoto.src} alt={selectedPhoto.alt} onClick={(event) => event.stopPropagation()} />{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-next" onClick={(event) => { event.stopPropagation(); movePhoto(1) }} aria-label="Foto berikutnya"><ArrowRight /></button>}<span className="lightbox-caption">{selectedPhoto.alt}</span></div>}
     </main>
   )
 }
