@@ -52,7 +52,7 @@ async function getAlbumPhotos(album) {
       id: resource.public_id,
       src: resource.secure_url,
       thumb: resource.secure_url.replace('/upload/', '/upload/f_auto,q_auto,w_640,c_limit/'),
-      preview: resource.secure_url.replace('/upload/', '/upload/f_auto,q_auto,w_2000,c_limit/'),
+      preview: resource.secure_url.replace('/upload/', '/upload/f_auto,q_auto,w_1600,c_limit/'),
       alt: resource.context?.custom?.alt || resource.public_id.split('/').at(-1).replace(/[-_]/g, ' '),
     })))
     nextCursor = result.next_cursor || null
