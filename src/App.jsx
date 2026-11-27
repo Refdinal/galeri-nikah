@@ -54,10 +54,16 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [navLoading, setNavLoading] = useState(false)
   const albumRequestRef = useRef(0)
   const loadingMoreRef = useRef(false)
+  const photosRef = useRef([])
+  const nextCursorRef = useRef(null)
 
   const ready = cloudinaryReady()
+
+  useEffect(() => { photosRef.current = photos }, [photos])
+  useEffect(() => { nextCursorRef.current = nextCursor }, [nextCursor])
 
   useEffect(() => {
     let mounted = true
@@ -126,10 +132,53 @@ function App() {
     return sections
   }, [photos])
   const currentIndex = selectedPhoto ? orderedPhotos.findIndex((photo) => photo.id === selectedPhoto.id) : -1
-  const movePhoto = (direction) => {
-    if (!orderedPhotos.length || currentIndex < 0) return
-    const next = (currentIndex + direction + orderedPhotos.length) % orderedPhotos.length
-    setSelectedPhoto(orderedPhotos[next])
+
+  const loadNextBatch = useCallback(async () => {
+    if (!activeAlbum || !nextCursorRef.current || loadingMoreRef.current) return null
+    const albumId = activeAlbum.id
+    const cursor = nextCursorRef.current
+    const requestId = albumRequestRef.current
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+    try {
+      const result = await getAlbumPhotos(albumId, { limit: PHOTO_BATCH_SIZE, cursor })
+      if (requestId !== albumRequestRef.current) return null
+      const newPhotos = result.photos || []
+      const cursorAfter = result.nextCursor || null
+      nextCursorRef.current = cursorAfter
+      setNextCursor(cursorAfter)
+      setPhotos((current) => {
+        const merged = [...current, ...newPhotos]
+        photosRef.current = merged
+        return merged
+      })
+      return newPhotos
+    } catch (cause) {
+      if (requestId === albumRequestRef.current) setError(cause.message || 'Foto berikutnya gagal dimuat.')
+      return null
+    } finally {
+      loadingMoreRef.current = false
+      if (requestId === albumRequestRef.current) setLoadingMore(false)
+    }
+  }, [activeAlbum])
+
+  const movePhoto = async (direction) => {
+    const list = photosRef.current
+    if (!list.length || currentIndex < 0) return
+    if (direction > 0 && currentIndex === list.length - 1) {
+      if (nextCursorRef.current) {
+        if (loadingMoreRef.current) return
+        setNavLoading(true)
+        const newPhotos = await loadNextBatch()
+        setNavLoading(false)
+        if (newPhotos?.length) {
+          setSelectedPhoto(newPhotos[0])
+          return
+        }
+      }
+    }
+    const next = (currentIndex + direction + list.length) % list.length
+    setSelectedPhoto(list[next])
   }
 
   const prefetchNeighbors = useCallback((index) => {
@@ -143,8 +192,11 @@ function App() {
     if (!selectedPhoto || currentIndex < 0) return undefined
     preloadImage(selectedPhoto.preview)
     prefetchNeighbors(currentIndex)
+    if (nextCursor && currentIndex >= orderedPhotos.length - 3 && !loadingMoreRef.current) {
+      loadNextBatch()
+    }
     return undefined
-  }, [selectedPhoto, currentIndex, prefetchNeighbors])
+  }, [selectedPhoto, currentIndex, prefetchNeighbors, nextCursor, orderedPhotos.length, loadNextBatch])
 
   useEffect(() => {
     if (!selectedPhoto) return undefined
@@ -165,24 +217,8 @@ function App() {
     preloadImage(photo?.preview)
   }
 
-  const loadMorePhotos = async () => {
-    if (!activeAlbum || !nextCursor || loadingMoreRef.current) return
-    const albumId = activeAlbum.id
-    const cursor = nextCursor
-    const requestId = albumRequestRef.current
-    loadingMoreRef.current = true
-    setLoadingMore(true)
-    try {
-      const result = await getAlbumPhotos(albumId, { limit: PHOTO_BATCH_SIZE, cursor })
-      if (requestId !== albumRequestRef.current) return
-      setPhotos((current) => [...current, ...(result.photos || [])])
-      setNextCursor(result.nextCursor || null)
-    } catch (cause) {
-      if (requestId === albumRequestRef.current) setError(cause.message || 'Foto berikutnya gagal dimuat.')
-    } finally {
-      loadingMoreRef.current = false
-      if (requestId === albumRequestRef.current) setLoadingMore(false)
-    }
+  const loadMorePhotos = () => {
+    loadNextBatch()
   }
 
   const goToAlbums = () => {
@@ -270,7 +306,7 @@ function App() {
         </>
       )}
 
-      {selectedPhoto && <div className="lightbox" role="dialog" aria-modal="true" aria-label="Tampilan foto" onClick={() => setSelectedPhoto(null)}><div className="lightbox-actions"><a className="lightbox-download" href={`${(selectedPhoto.src || selectedPhoto.preview).replace('/upload/', '/upload/fl_attachment/')}`} download onClick={(event) => event.stopPropagation()} aria-label="Unduh foto resolusi asli"><Download size={19} /></a><button className="lightbox-close" onClick={() => setSelectedPhoto(null)} aria-label="Tutup"><X size={23} /></button></div>{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-prev" onClick={(event) => { event.stopPropagation(); movePhoto(-1) }} aria-label="Foto sebelumnya"><ArrowLeft /></button>}<LightboxImage photo={selectedPhoto} onClick={(event) => event.stopPropagation()} />{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-next" onClick={(event) => { event.stopPropagation(); movePhoto(1) }} aria-label="Foto berikutnya"><ArrowRight /></button>}<span className="lightbox-caption">{selectedPhoto.alt}</span></div>}
+      {selectedPhoto && <div className="lightbox" role="dialog" aria-modal="true" aria-label="Tampilan foto" onClick={() => setSelectedPhoto(null)}><div className="lightbox-actions"><a className="lightbox-download" href={`${(selectedPhoto.src || selectedPhoto.preview).replace('/upload/', '/upload/fl_attachment/')}`} download onClick={(event) => event.stopPropagation()} aria-label="Unduh foto resolusi asli"><Download size={19} /></a><button className="lightbox-close" onClick={() => setSelectedPhoto(null)} aria-label="Tutup"><X size={23} /></button></div>{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-prev" onClick={(event) => { event.stopPropagation(); movePhoto(-1) }} aria-label="Foto sebelumnya"><ArrowLeft /></button>}<LightboxImage photo={selectedPhoto} onClick={(event) => event.stopPropagation()} />{navLoading && <span className="lightbox-spinner lightbox-nav-spinner" role="status" aria-label="Memuat foto berikutnya" />}{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-next" onClick={(event) => { event.stopPropagation(); movePhoto(1) }} aria-label="Foto berikutnya"><ArrowRight /></button>}<span className="lightbox-caption">{selectedPhoto.alt}</span></div>}
     </main>
   )
 }
