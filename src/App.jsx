@@ -3,9 +3,44 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Camera, ChevronDown, Ch
 import { albums, cloudinaryReady, getAlbumPhotos, getAlbumPreviewPhotos, getFeaturedPhotos } from './cloudinary.js'
 
 const PHOTO_BATCH_SIZE = 20
+const preloadedImages = new Set()
+
+function preloadImage(src) {
+  if (!src || preloadedImages.has(src)) return
+  preloadedImages.add(src)
+  const img = new Image()
+  img.decoding = 'async'
+  img.src = src
+}
 
 function Photo({ src, alt, className = '', loading = 'lazy' }) {
   return <img className={className} src={src} alt={alt} loading={loading} />
+}
+
+function LightboxImage({ photo, onClick }) {
+  const [loaded, setLoaded] = useState(false)
+  const preview = photo.preview || photo.src
+
+  useEffect(() => {
+    setLoaded(false)
+  }, [preview])
+
+  return (
+    <div className="lightbox-stage" onClick={onClick}>
+      <img className="lightbox-thumb" src={photo.thumb || preview} alt="" aria-hidden="true" decoding="async" />
+      <img
+        key={preview}
+        className={loaded ? 'lightbox-preview lightbox-preview-loaded' : 'lightbox-preview'}
+        src={preview}
+        alt={photo.alt}
+        decoding="async"
+        fetchpriority="high"
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+      />
+      {!loaded && <span className="lightbox-spinner" role="status" aria-label="Memuat foto" />}
+    </div>
+  )
 }
 
 function App() {
@@ -97,6 +132,20 @@ function App() {
     setSelectedPhoto(orderedPhotos[next])
   }
 
+  const prefetchNeighbors = useCallback((index) => {
+    if (!orderedPhotos.length || index < 0) return
+    const length = orderedPhotos.length
+    preloadImage(orderedPhotos[(index + 1) % length]?.preview)
+    preloadImage(orderedPhotos[(index - 1 + length) % length]?.preview)
+  }, [orderedPhotos])
+
+  useEffect(() => {
+    if (!selectedPhoto || currentIndex < 0) return undefined
+    preloadImage(selectedPhoto.preview)
+    prefetchNeighbors(currentIndex)
+    return undefined
+  }, [selectedPhoto, currentIndex, prefetchNeighbors])
+
   useEffect(() => {
     if (!selectedPhoto) return undefined
     const onKeyDown = (event) => {
@@ -111,6 +160,10 @@ function App() {
       document.body.style.overflow = ''
     }
   })
+
+  const preloadOnIntent = (photo) => {
+    preloadImage(photo?.preview)
+  }
 
   const loadMorePhotos = async () => {
     if (!activeAlbum || !nextCursor || loadingMoreRef.current) return
@@ -169,7 +222,7 @@ function App() {
           {!loading && error && <div className="empty-state"><Camera size={25} /><h2>{ready ? 'Album belum berisi foto' : 'Galeri sedang disiapkan'}</h2><p>{error}</p></div>}
           {!loading && photos.length > 0 && <>{photoSections.map((section, sectionIndex) => <div className="photo-section" key={`photo-section-${sectionIndex}`}><div className="photo-grid">{section.map((photo, photoIndex) => {
             const index = sectionIndex * PHOTO_BATCH_SIZE + photoIndex
-            return <button className="photo-tile" key={photo.id} onClick={() => setSelectedPhoto(photo)} aria-label={`Lihat foto ${index + 1}: ${photo.alt}`}><Photo src={photo.thumb} alt={photo.alt} /><span className="photo-number">{String(index + 1).padStart(2, '0')}</span></button>
+            return <button className="photo-tile" key={photo.id} onClick={() => setSelectedPhoto(photo)} onMouseEnter={() => preloadOnIntent(photo)} onPointerDown={() => preloadOnIntent(photo)} aria-label={`Lihat foto ${index + 1}: ${photo.alt}`}><Photo src={photo.thumb} alt={photo.alt} /><span className="photo-number">{String(index + 1).padStart(2, '0')}</span></button>
           })}</div></div>)}{nextCursor && <div className="load-more-sentinel" aria-live="polite"><button className="load-more-button" type="button" onClick={loadMorePhotos} disabled={loadingMore}>{loadingMore ? <><span className="spinner" /> Memuat foto berikutnya…</> : <>Muat foto lainnya <ChevronRight size={17} /></>}</button></div>}</>}
         </section>
       ) : (
@@ -202,7 +255,7 @@ function App() {
           <section className="featured-section" aria-label="Sorotan kenangan">
             <div className="section-kicker"><span>PILIHAN KENANGAN</span><span>21 — 24 OKTOBER 2026</span></div>
             <div className="featured-grid">
-              {featured.slice(0, 6).map((photo, index) => <button className={`featured-photo featured-photo-${index + 1}`} key={photo.id} onClick={() => setSelectedPhoto(photo)} aria-label={`Sorotan foto ${index + 1}`}><Photo src={photo.thumb || photo.src} alt={photo.alt} /><span className="featured-count">{String(index + 1).padStart(2, '0')} <ArrowUpRight size={14} /></span></button>)}
+              {featured.slice(0, 6).map((photo, index) => <button className={`featured-photo featured-photo-${index + 1}`} key={photo.id} onClick={() => setSelectedPhoto(photo)} onMouseEnter={() => preloadOnIntent(photo)} onPointerDown={() => preloadOnIntent(photo)} aria-label={`Sorotan foto ${index + 1}`}><Photo src={photo.thumb || photo.src} alt={photo.alt} /><span className="featured-count">{String(index + 1).padStart(2, '0')} <ArrowUpRight size={14} /></span></button>)}
             </div>
           </section>
 
@@ -217,7 +270,7 @@ function App() {
         </>
       )}
 
-      {selectedPhoto && <div className="lightbox" role="dialog" aria-modal="true" aria-label="Tampilan foto" onClick={() => setSelectedPhoto(null)}><div className="lightbox-actions"><a className="lightbox-download" href={`${(selectedPhoto.src || selectedPhoto.preview).replace('/upload/', '/upload/fl_attachment/')}`} download onClick={(event) => event.stopPropagation()} aria-label="Unduh foto resolusi asli"><Download size={19} /></a><button className="lightbox-close" onClick={() => setSelectedPhoto(null)} aria-label="Tutup"><X size={23} /></button></div>{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-prev" onClick={(event) => { event.stopPropagation(); movePhoto(-1) }} aria-label="Foto sebelumnya"><ArrowLeft /></button>}<img src={selectedPhoto.preview || selectedPhoto.src} alt={selectedPhoto.alt} onClick={(event) => event.stopPropagation()} />{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-next" onClick={(event) => { event.stopPropagation(); movePhoto(1) }} aria-label="Foto berikutnya"><ArrowRight /></button>}<span className="lightbox-caption">{selectedPhoto.alt}</span></div>}
+      {selectedPhoto && <div className="lightbox" role="dialog" aria-modal="true" aria-label="Tampilan foto" onClick={() => setSelectedPhoto(null)}><div className="lightbox-actions"><a className="lightbox-download" href={`${(selectedPhoto.src || selectedPhoto.preview).replace('/upload/', '/upload/fl_attachment/')}`} download onClick={(event) => event.stopPropagation()} aria-label="Unduh foto resolusi asli"><Download size={19} /></a><button className="lightbox-close" onClick={() => setSelectedPhoto(null)} aria-label="Tutup"><X size={23} /></button></div>{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-prev" onClick={(event) => { event.stopPropagation(); movePhoto(-1) }} aria-label="Foto sebelumnya"><ArrowLeft /></button>}<LightboxImage photo={selectedPhoto} onClick={(event) => event.stopPropagation()} />{orderedPhotos.length > 1 && <button className="lightbox-arrow lightbox-next" onClick={(event) => { event.stopPropagation(); movePhoto(1) }} aria-label="Foto berikutnya"><ArrowRight /></button>}<span className="lightbox-caption">{selectedPhoto.alt}</span></div>}
     </main>
   )
 }
